@@ -26,7 +26,7 @@ jobs:
         uses: checkmarx/vorpal-reviewdog-github-action@v1.2.0  # pin to a released tag
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          source_path: ${{ https://github.com/bunnyyy15/Damn-vulnerable-sca.git }}    # or list files/folders manually
+          source_path: ${{ steps.changed-files.outputs.all_changed_files }}    # or list files/folders manually
           reporter: github-pr-check      # or github-pr-review
           level: error                   # info | warning | error
           filter_mode: file              # added | diff_context | file | nofilter
