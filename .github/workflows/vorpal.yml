@@ -1,4 +1,4 @@
-name: Vorpal PR scan
+name: Vorpal full-repo scan
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write   # needed for posting review comments/checks
+  pull-requests: write
 
 jobs:
   vorpal:
@@ -17,20 +17,15 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Get changed files (optional)
-        id: changed-files
-        uses: tj-actions/changed-files@v46.0.1  # pin a specific tag/commit if you use this
         with:
-          separator: ','
+          fetch-depth: 0    # optional: full history if any tools need it
 
-      - name: Run Vorpal with reviewdog
-        if: ${{ steps.changed-files.outputs.all_changed_files != '' }}   # optional: only run when there are changed files
-        uses: checkmarx/vorpal-reviewdog-github-action@v1.2.0  # pin to a released tag
+      - name: Run Vorpal with reviewdog (full repo)
+        uses: checkmarx/vorpal-reviewdog-github-action@v1.2.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          source_path: ${{ steps.changed-files.outputs.all_changed_files }}    # or list files/folders manually
-          reporter: github-pr-check      # or github-pr-review
-          level: error                   # info | warning | error
-          filter_mode: file              # added | diff_context | file | nofilter
+          source_path: '.'                 # scan whole repo
+          reporter: github-pr-check        # or github-pr-review for review comments
+          level: error
+          filter_mode: nofilter            # scanning all files, so don't filter
           fail_on_error: false
