@@ -17,15 +17,21 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0    # optional: full history if any tools need it
 
-      - name: Run Vorpal with reviewdog (full repo)
+      # Get ALL files in the repo, not only changed ones
+      - name: Get all files in repo
+        id: all-files
+        uses: tj-actions/changed-files@v46.0.1
+        with:
+          files: "**/*"
+          separator: ','
+
+      - name: Run Vorpal (full repo)
         uses: checkmarx/vorpal-reviewdog-github-action@v1.2.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          source_path: '.'                 # scan whole repo
-          reporter: github-pr-check        # or github-pr-review for review comments
+          source_path: ${{ steps.all-files.outputs.all_files }}
+          reporter: github-pr-check
           level: error
-          filter_mode: nofilter            # scanning all files, so don't filter
+          filter_mode: nofilter
           fail_on_error: false
