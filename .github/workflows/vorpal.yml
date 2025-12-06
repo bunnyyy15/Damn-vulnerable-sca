@@ -1,6 +1,9 @@
 name: Vorpal PR scan
 
 on:
+  push:
+    branches:
+      - "**"
   pull_request:
     types: [opened, synchronize, reopened]
 
