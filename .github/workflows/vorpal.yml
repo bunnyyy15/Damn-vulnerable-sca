@@ -1,4 +1,4 @@
-name: Vorpal full-repo scan
+name: Vorpal full-repo scan (safe)
 
 on:
   push:
@@ -17,20 +17,45 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
-      # Get ALL files in the repo, not only changed ones
-      - name: Get all files in repo
-        id: all-files
-        uses: tj-actions/changed-files@v46.0.1
         with:
-          files: "**/*"
-          separator: ','
+          fetch-depth: 0
+
+      - name: Build comma-separated file list
+        id: list_files
+        run: |
+          # Use git to list tracked files. Adjust grep to restrict languages if desired.
+          files=$(git ls-files | grep -E '\.(java|kt|groovy|js|ts|py|rb|go|scala|c|cpp|cs|json|xml|yaml|yml)$' || true)
+
+          # Fallback: if the above grep removed everything and you still want all tracked files, uncomment:
+          # files=$(git ls-files)
+
+          if [ -z "$files" ]; then
+            echo "No matching files found to scan. Aborting to avoid passing empty input to Vorpal."
+            echo "all_files=" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # make comma-separated single-line
+          csv=$(echo "$files" | paste -sd, -)
+
+          # For debugging: print counts (safe for logs)
+          count=$(echo "$files" | wc -l)
+          echo "Found $count files to scan."
+
+          # Export to GitHub Actions output
+          echo "all_files=$csv" >> $GITHUB_OUTPUT
+
+      - name: Debug — show first 2000 chars of file list (optional)
+        if: always()
+        run: |
+          echo "${{ steps.list_files.outputs.all_files }}" | cut -c1-2000
 
       - name: Run Vorpal (full repo)
+        if: ${{ steps.list_files.outputs.all_files != '' }}
         uses: checkmarx/vorpal-reviewdog-github-action@v1.2.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          source_path: ${{ steps.all-files.outputs.all_files }}
+          source_path: ${{ steps.list_files.outputs.all_files }}
           reporter: github-pr-check
           level: error
           filter_mode: nofilter
